@@ -1,0 +1,35 @@
+name: CI
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: 1111
+          POSTGRES_DB: docmanager_test
+        ports:
+          - 5432:5432
+        options: --health-cmd "pg_isready -U postgres" --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Restore and build
+        run: |
+          dotnet restore
+          dotnet build --no-restore --configuration Release
+      - name: Unit Tests
+        run: dotnet test DocumentManager.UnitTests --configuration Release --no-build
+      - name: Integration Tests
+        run: dotnet test DocumentManager.IntegrationTests --configuration Release --no-build
+      - name: Database Tests
+        run: dotnet test DocumentManager.DatabaseTests --configuration Release --no-build
